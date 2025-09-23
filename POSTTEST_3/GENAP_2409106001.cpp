@@ -7,10 +7,12 @@ struct Flight {
     string tujuan;
     string status;
     Flight *next;
+    Flight *prev;
 };
 
 Flight *head = nullptr;
-int counter = 0; 
+Flight *tail = nullptr;
+int counter = 0;
 
 // kode penerbangan berdasarkan NIM
 string generateKode() {
@@ -22,23 +24,22 @@ string generateKode() {
     }
 }
 
-// tambah jadwal di akhir 
+// tambah jadwal di akhir
 void addLast(string tujuan, string status) {
     Flight *nodeBaru = new Flight;
     nodeBaru->kodePenerbangan = generateKode();
     nodeBaru->tujuan = tujuan;
     nodeBaru->status = status;
     nodeBaru->next = nullptr;
+    nodeBaru->prev = tail;
 
     if (head == nullptr) {
-        head = nodeBaru;
-        return;
+        head = tail = nodeBaru;
+    } else {
+        tail->next = nodeBaru;
+        tail = nodeBaru;
     }
-    Flight *temp = head;
-    while (temp->next != nullptr) {
-        temp = temp->next;
-    }
-    temp->next = nodeBaru;
+    cout << ">> Jadwal berhasil ditambahkan di akhir.\n";
 }
 
 // sisipkan jadwal pada posisi tertentu (digit terakhir NIM + 1)
@@ -49,9 +50,13 @@ void addSpecific(string tujuan, string status) {
     nodeBaru->tujuan = tujuan;
     nodeBaru->status = status;
 
-    if (posisi <= 1 || head == nullptr) {
+    if (head == nullptr || posisi <= 1) {
         nodeBaru->next = head;
+        nodeBaru->prev = nullptr;
+        if (head != nullptr) head->prev = nodeBaru;
         head = nodeBaru;
+        if (tail == nullptr) tail = nodeBaru;
+        cout << ">> Jadwal berhasil disisipkan di awal.\n";
         return;
     }
 
@@ -63,25 +68,35 @@ void addSpecific(string tujuan, string status) {
     }
 
     nodeBaru->next = temp->next;
+    nodeBaru->prev = temp;
+    if (temp->next != nullptr) temp->next->prev = nodeBaru;
     temp->next = nodeBaru;
+    if (nodeBaru->next == nullptr) tail = nodeBaru;
+
+    cout << ">> Jadwal berhasil disisipkan pada posisi " << posisi << ".\n";
 }
 
-// hapus jadwal paling awal 
+// hapus jadwal paling awal
 void deleteFirst() {
     if (head == nullptr) {
-        cout << ">> Jadwal masih kosong <<" << endl;
+        cout << ">> Jadwal masih kosong <<\n";
         return;
     }
     Flight *hapus = head;
     head = head->next;
+    if (head != nullptr) {
+        head->prev = nullptr;
+    } else {
+        tail = nullptr; // jika list jadi kosong
+    }
     cout << "Jadwal " << hapus->kodePenerbangan << " dihapus.\n";
     delete hapus;
 }
 
-// update status penerbangan (edit Data)
+// update status penerbangan
 void updateStatus(string kode) {
     if (head == nullptr) {
-        cout << ">> Jadwal masih kosong <<" << endl;
+        cout << ">> Jadwal masih kosong <<\n";
         return;
     }
     Flight *temp = head;
@@ -97,17 +112,17 @@ void updateStatus(string kode) {
         }
         temp = temp->next;
     }
-    cout << ">> Kode penerbangan tidak ditemukan <<" << endl;
+    cout << ">> Kode penerbangan tidak ditemukan <<\n";
 }
 
-// tampilkan semua jadwal (traversal)
+// tampilkan semua jadwal dari depan
 void display() {
     if (head == nullptr) {
-        cout << ">> Tidak ada jadwal penerbangan <<" << endl;
+        cout << ">> Tidak ada jadwal penerbangan <<\n";
         return;
     }
     Flight *temp = head;
-    cout << "\n==== DAFTAR JADWAL PENERBANGAN ====\n";
+    cout << "\n==== DAFTAR JADWAL PENERBANGAN (DEPAN) ====\n";
     while (temp != nullptr) {
         cout << "Kode   : " << temp->kodePenerbangan << endl;
         cout << "Tujuan : " << temp->tujuan << endl;
@@ -117,20 +132,55 @@ void display() {
     }
 }
 
+// tampilkan semua jadwal dari belakang
+void displayReverse() {
+    if (tail == nullptr) {
+        cout << ">> Tidak ada jadwal penerbangan <<\n";
+        return;
+    }
+    Flight *temp = tail;
+    cout << "\n==== DAFTAR JADWAL PENERBANGAN (BELAKANG) ====\n";
+    while (temp != nullptr) {
+        cout << "Kode   : " << temp->kodePenerbangan << endl;
+        cout << "Tujuan : " << temp->tujuan << endl;
+        cout << "Status : " << temp->status << endl;
+        cout << "-----------------------------\n";
+        temp = temp->prev;
+    }
+}
+
+// tampilkan detail jadwal berdasarkan kode
+void detailByKode(string kode) {
+    Flight *temp = head;
+    while (temp != nullptr) {
+        if (temp->kodePenerbangan == kode) {
+            cout << "\n==== DETAIL JADWAL ====\n";
+            cout << "Kode   : " << temp->kodePenerbangan << endl;
+            cout << "Tujuan : " << temp->tujuan << endl;
+            cout << "Status : " << temp->status << endl;
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << ">> Kode penerbangan tidak ditemukan <<\n";
+}
+
 int main() {
     int pilihan;
     string tujuan, status, kode;
 
     do {
         cout << "\n+------------------------------------------------------------+\n";
-        cout << "|              FLIGHT SCHEDULE SYSTEM                        |\n";
+        cout << "|              FLIGHT SCHEDULE SYSTEM (DLL)                  |\n";
         cout << "|       [ Renaya Putri Alika - 2409106002 ]                  |\n";
         cout << "+------------------------------------------------------------+\n";
-        cout << "| 1. Tambah Jadwal Penerbangan                               |\n";
-        cout << "| 2. Sisipkan Jadwal Penerbangan                             |\n";
+        cout << "| 1. Tambah Jadwal Penerbangan (Akhir)                       |\n";
+        cout << "| 2. Sisipkan Jadwal Penerbangan (Posisi NIM+1)              |\n";
         cout << "| 3. Hapus Jadwal Paling Awal                                |\n";
         cout << "| 4. Update Status Penerbangan                               |\n";
-        cout << "| 5. Tampilkan Semua Jadwal                                  |\n";
+        cout << "| 5. Tampilkan Semua Jadwal (Depan)                          |\n";
+        cout << "| 6. Tampilkan Semua Jadwal (Belakang)                       |\n";
+        cout << "| 7. Cari Detail Jadwal (berdasarkan Kode)                   |\n";
         cout << "| 0. Keluar                                                  |\n";
         cout << "+------------------------------------------------------------+\n";
         cout << "Pilih menu: ";
@@ -161,6 +211,14 @@ int main() {
             break;
         case 5:
             display();
+            break;
+        case 6:
+            displayReverse();
+            break;
+        case 7:
+            cout << "Masukkan kode penerbangan: ";
+            cin >> kode;
+            detailByKode(kode);
             break;
         case 0:
             cout << "Keluar dari program...\n";
