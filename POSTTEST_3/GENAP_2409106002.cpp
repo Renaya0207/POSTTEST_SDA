@@ -1,266 +1,232 @@
 #include <iostream>
-#include <iomanip>
 #include <string>
 using namespace std;
 
-struct Node {
-    int id;
-    string namaItem;
-    int jumlah;
-    string tipe;
-    Node *next;
-    Node *prev;
+struct Flight {
+    string kodePenerbangan;
+    string tujuan;
+    string status;
+    Flight *next;
+    Flight *prev;
 };
 
-Node *head = NULL;
-Node *tail = NULL;
-int jumlahAwal = 1;
-int posisiSisip = 1;
-int autoID = 1;
+Flight *head = nullptr;
+Flight *tail = nullptr;
+int counter = 0;
 
-// Membuat node baru
-Node* buatNode(string nama, string tipe) {
-    Node *baru = new Node;
-    baru->id = autoID++;
-    baru->namaItem = nama;
-    baru->tipe = tipe;
-    baru->jumlah = jumlahAwal;
-    baru->next = NULL;
-    baru->prev = NULL;
-    return baru;
-}
-
-// Tambah di akhir
-void tambahItem(string nama, string tipe) {
-    Node *baru = buatNode(nama, tipe);
-    if (head == NULL) {
-        head = tail = baru;
+// kode penerbangan berdasarkan NIM
+string generateKode() {
+    if (counter == 0) {
+        counter++;
+        return "JT-002"; // 3 digit terakhir NIM
     } else {
-        tail->next = baru;
-        baru->prev = tail;
-        tail = baru;
+        return "JT-002-" + to_string(counter++);
     }
 }
 
-// Sisip di posisi tertentu
-void sisipItem(string nama, string tipe) {
-    Node *baru = buatNode(nama, tipe);
+// tambah jadwal di akhir
+void addLast(string tujuan, string status) {
+    Flight *nodeBaru = new Flight;
+    nodeBaru->kodePenerbangan = generateKode();
+    nodeBaru->tujuan = tujuan;
+    nodeBaru->status = status;
+    nodeBaru->next = nullptr;
+    nodeBaru->prev = tail;
 
-    if (head == NULL || posisiSisip == 1) {
-        baru->next = head;
-        if (head != NULL) head->prev = baru;
-        head = baru;
-        if (tail == NULL) tail = baru;
+    if (head == nullptr) {
+        head = tail = nodeBaru;
     } else {
-        Node *bantu = head;
-        int i = 1;
-        while (i < posisiSisip - 1 && bantu->next != NULL) {
-            bantu = bantu->next;
-            i++;
-        }
-        baru->next = bantu->next;
-        baru->prev = bantu;
-        if (bantu->next != NULL) {
-            bantu->next->prev = baru;
-        } else {
-            tail = baru;
-        }
-        bantu->next = baru;
+        tail->next = nodeBaru;
+        tail = nodeBaru;
     }
+    cout << ">> Jadwal berhasil ditambahkan di akhir.\n";
 }
 
-// Hapus item terakhir
-void hapusItemTerakhir() {
-    if (tail == NULL) {
-        cout << "Inventory kosong!\n";
+// sisipkan jadwal pada posisi tertentu (digit terakhir NIM + 1)
+void addSpecific(string tujuan, string status) {
+    int posisi = 2 + 1; // karena NIM berakhir 2 → posisi = 3
+    Flight *nodeBaru = new Flight;
+    nodeBaru->kodePenerbangan = generateKode();
+    nodeBaru->tujuan = tujuan;
+    nodeBaru->status = status;
+
+    if (head == nullptr || posisi <= 1) {
+        nodeBaru->next = head;
+        nodeBaru->prev = nullptr;
+        if (head != nullptr) head->prev = nodeBaru;
+        head = nodeBaru;
+        if (tail == nullptr) tail = nodeBaru;
+        cout << ">> Jadwal berhasil disisipkan di awal.\n";
         return;
     }
-    Node *hapus = tail;
-    if (head == tail) {
-        head = tail = NULL;
-    } else {
-        tail = tail->prev;
-        tail->next = NULL;
+
+    Flight *temp = head;
+    int hitung = 1;
+    while (temp->next != nullptr && hitung < posisi - 1) {
+        temp = temp->next;
+        hitung++;
     }
+
+    nodeBaru->next = temp->next;
+    nodeBaru->prev = temp;
+    if (temp->next != nullptr) temp->next->prev = nodeBaru;
+    temp->next = nodeBaru;
+    if (nodeBaru->next == nullptr) tail = nodeBaru;
+
+    cout << ">> Jadwal berhasil disisipkan pada posisi " << posisi << ".\n";
+}
+
+// hapus jadwal paling awal
+void deleteFirst() {
+    if (head == nullptr) {
+        cout << ">> Jadwal masih kosong <<\n";
+        return;
+    }
+    Flight *hapus = head;
+    head = head->next;
+    if (head != nullptr) {
+        head->prev = nullptr;
+    } else {
+        tail = nullptr; // jika list jadi kosong
+    }
+    cout << "Jadwal " << hapus->kodePenerbangan << " dihapus.\n";
     delete hapus;
-    cout << "Item terakhir berhasil dihapus!\n";
 }
 
-// Gunakan item
-void gunakanItem(string nama) {
-    if (head == NULL) {
-        cout << "Inventory kosong!\n";
+// update status penerbangan
+void updateStatus(string kode) {
+    if (head == nullptr) {
+        cout << ">> Jadwal masih kosong <<\n";
         return;
     }
-
-    Node *bantu = head;
-    while (bantu != NULL && bantu->namaItem != nama) {
-        bantu = bantu->next;
-    }
-
-    if (bantu == NULL) {
-        cout << "Item tidak ditemukan!\n";
-    } else {
-        bantu->jumlah--;
-        if (bantu->jumlah <= 0) {
-            cout << bantu->namaItem << " habis, dihapus dari inventory.\n";
-            if (bantu == head) {
-                head = bantu->next;
-                if (head != NULL) head->prev = NULL;
-            } else if (bantu == tail) {
-                tail = bantu->prev;
-                if (tail != NULL) tail->next = NULL;
-            } else {
-                bantu->prev->next = bantu->next;
-                bantu->next->prev = bantu->prev;
-            }
-            delete bantu;
-        } else {
-            cout << "Berhasil menggunakan " << nama 
-                 << ". Sisa: " << bantu->jumlah << endl;
+    Flight *temp = head;
+    while (temp != nullptr) {
+        if (temp->kodePenerbangan == kode) {
+            cout << "Status lama: " << temp->status << endl;
+            cout << "Masukkan status baru: ";
+            string newStatus;
+            getline(cin >> ws, newStatus);
+            temp->status = newStatus;
+            cout << "Status penerbangan " << kode << " berhasil diperbarui.\n";
+            return;
         }
+        temp = temp->next;
     }
+    cout << ">> Kode penerbangan tidak ditemukan <<\n";
 }
 
-// Cetak header tabel
-void cetakHeader() {
-    cout << "+-----+-----------------+--------+---------------+\n";
-    cout << "| ID  | Nama Item       | Jumlah | Tipe          |\n";
-    cout << "+-----+-----------------+--------+---------------+\n";
-}
-
-// Cetak baris tabel
-void cetakBaris(Node *n) {
-    cout << "| " << setw(3) << n->id
-         << " | " << left << setw(15) << n->namaItem
-         << " | " << setw(6) << n->jumlah
-         << " | " << setw(13) << n->tipe << " |\n";
-}
-
-// Traversal dari depan
-void tampilkanInventory() {
-    if (head == NULL) {
-        cout << "Inventory kosong!\n";
+// tampilkan semua jadwal dari depan
+void display() {
+    if (head == nullptr) {
+        cout << ">> Tidak ada jadwal penerbangan <<\n";
         return;
     }
-    cout << "\n=== Daftar Inventory (Depan -> Belakang) ===\n";
-    cetakHeader();
-    Node *bantu = head;
-    while (bantu != NULL) {
-        cetakBaris(bantu);
-        bantu = bantu->next;
+    Flight *temp = head;
+    cout << "\n==== DAFTAR JADWAL PENERBANGAN (DEPAN) ====\n";
+    while (temp != nullptr) {
+        cout << "Kode   : " << temp->kodePenerbangan << endl;
+        cout << "Tujuan : " << temp->tujuan << endl;
+        cout << "Status : " << temp->status << endl;
+        cout << "-----------------------------\n";
+        temp = temp->next;
     }
-    cout << "+-----+-----------------+--------+---------------+\n";
 }
 
-// Traversal dari belakang
-void tampilkanInventoryBelakang() {
-    if (tail == NULL) {
-        cout << "Inventory kosong!\n";
+// tampilkan semua jadwal dari belakang
+void displayReverse() {
+    if (tail == nullptr) {
+        cout << ">> Tidak ada jadwal penerbangan <<\n";
         return;
     }
-    cout << "\n=== Daftar Inventory (Belakang -> Depan) ===\n";
-    cetakHeader();
-    Node *bantu = tail;
-    while (bantu != NULL) {
-        cetakBaris(bantu);
-        bantu = bantu->prev;
-    }
-    cout << "+-----+-----------------+--------+---------------+\n";
-}
-
-// Cari detail berdasarkan ID
-void detailItem(int idCari) {
-    Node *bantu = head;
-    while (bantu != NULL && bantu->id != idCari) {
-        bantu = bantu->next;
-    }
-    if (bantu == NULL) {
-        cout << "Data dengan ID " << idCari << " tidak ditemukan!\n";
-    } else {
-        cout << "\n=== Detail Item ===\n";
-        cout << "ID     : " << bantu->id << endl;
-        cout << "Nama   : " << bantu->namaItem << endl;
-        cout << "Jumlah : " << bantu->jumlah << endl;
-        cout << "Tipe   : " << bantu->tipe << endl;
-        cout << "===================\n";
+    Flight *temp = tail;
+    cout << "\n==== DAFTAR JADWAL PENERBANGAN (BELAKANG) ====\n";
+    while (temp != nullptr) {
+        cout << "Kode   : " << temp->kodePenerbangan << endl;
+        cout << "Tujuan : " << temp->tujuan << endl;
+        cout << "Status : " << temp->status << endl;
+        cout << "-----------------------------\n";
+        temp = temp->prev;
     }
 }
 
-// MAIN PROGRAM
+// tampilkan detail jadwal berdasarkan kode
+void detailByKode(string kode) {
+    Flight *temp = head;
+    while (temp != nullptr) {
+        if (temp->kodePenerbangan == kode) {
+            cout << "\n==== DETAIL JADWAL ====\n";
+            cout << "Kode   : " << temp->kodePenerbangan << endl;
+            cout << "Tujuan : " << temp->tujuan << endl;
+            cout << "Status : " << temp->status << endl;
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << ">> Kode penerbangan tidak ditemukan <<\n";
+}
+
 int main() {
-    string nama, nim;
-    cout << "Masukkan Nama: ";
-    getline(cin, nama);
-    cout << "Masukkan NIM: ";
-    getline(cin, nim);
+    int pilihan;
+    string tujuan, status, kode;
 
-    for (auto &c : nama) c = toupper(c);
-
-    if (nim.size() >= 2) {
-        jumlahAwal = stoi(nim.substr(nim.size() - 2));
-    } else {
-        jumlahAwal = stoi(nim);
-    }
-    posisiSisip = (nim.back() - '0') + 1;
-
-    int pilih;
     do {
-        cout << "\n+-------------------------------------------------+\n";
-        cout << "|        GAME INVENTORY MANAGEMENT (DLL)          |\n";
-        cout << "|        [ " << nama << " - " << nim << " ]\n";
-        cout << "+-------------------------------------------------+\n";
-        cout << "1. Tambah Item Baru\n";
-        cout << "2. Sisipkan Item\n";
-        cout << "3. Hapus Item Terakhir\n";
-        cout << "4. Gunakan Item\n";
-        cout << "5. Tampilkan Inventory (Depan -> Belakang)\n";
-        cout << "6. Tampilkan Inventory (Belakang -> Depan)\n";
-        cout << "7. Detail Item (berdasarkan ID)\n";
-        cout << "0. Keluar\n";
-        cout << "+-------------------------------------------------+\n";
+        cout << "\n+------------------------------------------------------------+\n";
+        cout << "|              FLIGHT SCHEDULE SYSTEM (DLL)                  |\n";
+        cout << "|       [ Renaya Putri Alika - 2409106002 ]                  |\n";
+        cout << "+------------------------------------------------------------+\n";
+        cout << "| 1. Tambah Jadwal Penerbangan (Akhir)                       |\n";
+        cout << "| 2. Sisipkan Jadwal Penerbangan (Posisi NIM+1)              |\n";
+        cout << "| 3. Hapus Jadwal Paling Awal                                |\n";
+        cout << "| 4. Update Status Penerbangan                               |\n";
+        cout << "| 5. Tampilkan Semua Jadwal (Depan)                          |\n";
+        cout << "| 6. Tampilkan Semua Jadwal (Belakang)                       |\n";
+        cout << "| 7. Cari Detail Jadwal (berdasarkan Kode)                   |\n";
+        cout << "| 0. Keluar                                                  |\n";
+        cout << "+------------------------------------------------------------+\n";
         cout << "Pilih menu: ";
-        cin >> pilih;
-        cin.ignore();
+        cin >> pilihan;
 
-        if (pilih == 1) {
-            string item, tipe;
-            cout << "Masukkan nama item : ";
-            getline(cin, item);
-            cout << "Masukkan tipe item : ";
-            getline(cin, tipe);
-            tambahItem(item, tipe);
+        switch (pilihan) {
+        case 1:
+            cout << "Masukkan tujuan: ";
+            getline(cin >> ws, tujuan);
+            cout << "Masukkan status: ";
+            getline(cin >> ws, status);
+            addLast(tujuan, status);
+            break;
+        case 2:
+            cout << "Masukkan tujuan: ";
+            getline(cin >> ws, tujuan);
+            cout << "Masukkan status: ";
+            getline(cin >> ws, status);
+            addSpecific(tujuan, status);
+            break;
+        case 3:
+            deleteFirst();
+            break;
+        case 4:
+            cout << "Masukkan kode penerbangan: ";
+            cin >> kode;
+            updateStatus(kode);
+            break;
+        case 5:
+            display();
+            break;
+        case 6:
+            displayReverse();
+            break;
+        case 7:
+            cout << "Masukkan kode penerbangan: ";
+            cin >> kode;
+            detailByKode(kode);
+            break;
+        case 0:
+            cout << "Keluar dari program...\n";
+            break;
+        default:
+            cout << "Pilihan tidak valid!\n";
         }
-        else if (pilih == 2) {
-            string item, tipe;
-            cout << "Masukkan nama item : ";
-            getline(cin, item);
-            cout << "Masukkan tipe item : ";
-            getline(cin, tipe);
-            sisipItem(item, tipe);
-        }
-        else if (pilih == 3) {
-            hapusItemTerakhir();
-        }
-        else if (pilih == 4) {
-            string item;
-            cout << "Masukkan nama item yang digunakan: ";
-            getline(cin, item);
-            gunakanItem(item);
-        }
-        else if (pilih == 5) {
-            tampilkanInventory();
-        }
-        else if (pilih == 6) {
-            tampilkanInventoryBelakang();
-        }
-        else if (pilih == 7) {
-            int idCari;
-            cout << "Masukkan ID item: ";
-            cin >> idCari;
-            detailItem(idCari);
-        }
-    } while (pilih != 0);
+    } while (pilihan != 0);
 
     return 0;
 }
